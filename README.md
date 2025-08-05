@@ -86,40 +86,45 @@ deactivate
 Folgt den Eingabe­aufforderungen für Nutzername & Passwort.
 ```
 
-Datenbank-Schema
-Tabelle session
-Spalte	Typ	Beschreibung
-id	INTEGER PK	Primärschlüssel
-trainer	TEXT	Ausbilder-Username
-disponent	TEXT	Disponenten-Name
-start_time	DATETIME	Startzeit
-end_time	DATETIME	Endzeit
-total_sec	INTEGER	Gesamtdauer in Sekunden
+#Datenbank-Schema
 
-Tabelle step
-Spalte	Typ	Beschreibung
-id	INTEGER PK	Primärschlüssel
-session_id	INTEGER FK	Verweis auf session.id
-name	TEXT	QM-Maßnahme
-cumulative	INTEGER	Kumulative Zeit in Sekunden
-interval	INTEGER	Intervall seit vorheriger Maßnahme
-out_of_order	BOOLEAN	Reihenfolgeabweichung
+### Tabelle `session`
+| Spalte       | Typ         | Beschreibung               |
+|--------------|-------------|----------------------------|
+| `id`         | INTEGER PK  | Primärschlüssel            |
+| `trainer`    | TEXT        | Ausbilder-Username         |
+| `disponent`  | TEXT        | Disponenten-Name           |
+| `start_time` | DATETIME    | Startzeitpunkt             |
+| `end_time`   | DATETIME    | Endzeitpunkt               |
+| `total_sec`  | INTEGER     | Gesamtdauer in Sekunden    |
 
-Tabelle feedback
-Spalte	Typ	Beschreibung
-id	INTEGER PK	Primärschlüssel
-session_id	INTEGER FK	Verweis auf session.id
-timestamp	DATETIME	Zeitstempel Feedback
-pos_situation	TEXT	Positive Situation (SBI)
-pos_behavior	TEXT	Positive Behavior (SBI)
-pos_impact	TEXT	Positive Impact (SBI)
-neg_situation	TEXT	Negative Situation (SBI)
-neg_behavior	TEXT	Negative Behavior (SBI)
-neg_impact	TEXT	Negative Impact (SBI)
-smart_goal	TEXT	SMART-Ziel
-support	TEXT	Unterstützungsmaßnahmen
-next_steps	TEXT	Nächste Schritte
-overall	TEXT	Gesamtbewertung
+### Tabelle `step`
+| Spalte         | Typ         | Beschreibung                        |
+|----------------|-------------|-------------------------------------|
+| `id`           | INTEGER PK  | Primärschlüssel                     |
+| `session_id`   | INTEGER FK  | Verweis auf `session.id`            |
+| `name`         | TEXT        | QM-Maßnahme                         |
+| `cumulative`   | INTEGER     | Kumulative Zeit in Sekunden         |
+| `interval`     | INTEGER     | Intervall seit letzter Maßnahme (s) |
+| `out_of_order` | BOOLEAN     | Reihenfolgeabweichung               |
+
+### Tabelle `feedback`
+| Spalte           | Typ         | Beschreibung                     |
+|------------------|-------------|----------------------------------|
+| `id`             | INTEGER PK  | Primärschlüssel                  |
+| `session_id`     | INTEGER FK  | Verweis auf `session.id`         |
+| `timestamp`      | DATETIME    | Zeitstempel des Feedbacks        |
+| `pos_situation`  | TEXT        | Positive Situation (SBI)         |
+| `pos_behavior`   | TEXT        | Positive Behavior (SBI)          |
+| `pos_impact`     | TEXT        | Positive Impact (SBI)            |
+| `neg_situation`  | TEXT        | Negative Situation (SBI)         |
+| `neg_behavior`   | TEXT        | Negative Behavior (SBI)          |
+| `neg_impact`     | TEXT        | Negative Impact (SBI)            |
+| `smart_goal`     | TEXT        | SMART-Ziel                       |
+| `support`        | TEXT        | Unterstützungsmaßnahmen          |
+| `next_steps`     | TEXT        | Nächste Schritte                 |
+| `overall`        | TEXT        | Gesamtbewertung                  |
+
 
 Sicherheit & Tipps
 .env nie ins Git-Repo committen.
