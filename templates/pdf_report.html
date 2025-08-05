@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Kreisleitstelle Coesfeld – T-CPR Training</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
+    header img { height: 60px; }
+    header h1 { margin: 0; font-size: 1.6em; }
+    header p { margin: 0.5em 0 0; line-height: 1.3; }
+    table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+    th, td { border: 1px solid #888; padding: 0.5em; text-align: left; }
+    th { background: #eee; }
+    .feedback-entry { border: 1px solid #ccc; padding: 0.8em; margin-bottom: 1em; }
+    .timestamp { font-size: 0.9em; color: #555; margin-bottom: 0.5em; }
+    h2 { margin-top: 1.5em; }
+    h3 { margin-bottom: 0.3em; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>Kreisleitstelle Coesfeld – T-CPR Training</h1>
+      <p>
+        <strong>Ausbilder:</strong> {{ session.trainer }}<br>
+        <strong>Disponent:</strong> {{ session.disponent }}<br>
+        <strong>Start:</strong> {{ session.start_time.strftime('%H:%M:%S %d.%m.%Y ') }}<br>
+        <strong>Dauer:</strong> {{ session.total_sec }} s<br>
+        <strong>Punkte:</strong> {{ score }} / {{ max_points }}<br>
+        <strong>QM-Status:</strong>
+        {% if passed %}Entspricht Erwartungen{% else %}Entspricht nicht den Erwartungen{% endif %}
+      </p>
+    </div>
+    <div>
+      <!-- Absoluter Pfad zur SVG-Datei -->
+      <img src="file:///var/www/reatraining/static/images/kreiscoesfeld.svg"
+           alt="Kreis Coesfeld Logo">
+    </div>
+  </header>
+
+  <h2>Schritte</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Schritt</th>
+        <th>Ist (s)</th>
+        <th>Soll (s)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for st in steps %}
+      <tr>
+        <td>{{ st.name }}</td>
+        <td>{{ st.cumulative }}</td>
+        <td>{{ st.threshold }}</td>
+        <td>{{ st.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Feedback-Gespräch</h2>
+  {% if feedbacks %}
+    {% for fb in feedbacks %}
+      <div class="feedback-entry">
+        <div class="timestamp">{{ fb.timestamp }}</div>
+
+        <h3>Positives (SBI)</h3>
+        <p><strong>Situation:</strong> {{ fb.pos_situation }}</p>
+        <p><strong>Behavior:</strong>  {{ fb.pos_behavior }}</p>
+        <p><strong>Impact:</strong>    {{ fb.pos_impact }}</p>
+
+        <h3>Entwicklungsfelder (SBI)</h3>
+        <p><strong>Situation:</strong> {{ fb.neg_situation }}</p>
+        <p><strong>Behavior:</strong>  {{ fb.neg_behavior }}</p>
+        <p><strong>Impact:</strong>    {{ fb.neg_impact }}</p>
+
+        <h3>SMART-Ziel</h3>
+        <p>{{ fb.smart_goal }}</p>
+
+        <h3>Unterstützung</h3>
+        <p>{{ fb.support }}</p>
+
+        <h3>Nächste Schritte</h3>
+        <p>{{ fb.next_steps }}</p>
+
+        <h3>Gesamtbewertung</h3>
+        <p>{{ fb.overall }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p><em>Es hat kein Feedback Gespräch stattgefunden.</em></p>
+  {% endif %}
+
+</body>
+</html>
