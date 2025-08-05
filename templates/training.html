@@ -1,0 +1,188 @@
+{# templates/training.html #}
+{% extends "base.html" %}
+{% block title %}Training{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Linke Spalte: Steuerung -->
+  <div class="col-md-4">
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Training starten</h5>
+        <div class="mb-3">
+          <label class="form-label">Disponent</label>
+          <input id="disponent" class="form-control" placeholder="Name Disponent">
+        </div>
+        <div class="d-grid gap-2 mb-3">
+          <button id="btnStart" class="btn btn-success">Start</button>
+          <button id="btnFinish" class="btn btn-danger" disabled>Fertig</button>
+          <button id="btnReport" class="btn btn-secondary" disabled>Bericht öffnen</button>
+        </div>
+        <h5 class="text-center display-6" id="timer">00:00:00</h5>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rechte Spalte: T-CPR Maßnahmen in zwei Unterspalten -->
+  <div class="col-md-8">
+    <div class="card mb-4 shadow-sm p-3">
+      <h5>T-CPR Maßnahmen</h5>
+      <div class="row">
+        <!-- Unterspalte für Disponent 1 -->
+        <div class="col-12 col-lg-6">
+          <h6 class="mt-2">Disponent 1</h6>
+          {% for step in [
+            "Anrufannahme",
+            "Erkennen Bewusstloser Patient",
+            "Alarmieren der Rettungsmittel (Rapid Dispatch)",
+            "Erkennen Reanimationspflichtiger Patient",
+            "Assistenz anfordern (Optional)",
+            "Anleitung Reanimation eigenständig",
+            "Anleitung Reanimation durch CSNA",
+            "Metronom",
+            "Rückversichern der Geschwindigkeit und Drucktiefe"
+          ] %}
+            <button
+              class="btn btn-step btn-outline-danger step"
+              data-step="{{ step }}"
+              disabled>
+              {{ step }}
+            </button>
+          {% endfor %}
+        </div>
+        <!-- Unterspalte für Disponent 2 -->
+        <div class="col-12 col-lg-6">
+          <h6 class="mt-2">Disponent 2</h6>
+          {% for step in [
+            "Kommunikation mit Rettungsmitteln (Optional durch Disponent 2)"
+          ] %}
+            <button
+              class="btn btn-step btn-outline-danger step"
+              data-step="{{ step }}"
+              disabled>
+              {{ step }}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const stepsPrimary = [
+    "Anrufannahme",
+    "Erkennen Bewusstloser Patient",
+    "Alarmieren der Rettungsmittel (Rapid Dispatch)",
+    "Erkennen Reanimationspflichtiger Patient",
+    "Assistenz anfordern (Optional)",
+    "Anleitung Reanimation eigenständig",
+    "Anleitung Reanimation durch CSNA",
+    "Metronom",
+    "Rückversichern der Geschwindigkeit und Drucktiefe"
+  ];
+  const stepsSecondary = [
+    "Kommunikation mit Rettungsmitteln (Optional durch Disponent 2)"
+  ];
+
+  let startTime, lastTime;
+  let recorded = [];
+
+  // Formatiert Sekunden in HH:MM:SS
+  const fmt = sec => {
+    const h = Math.floor(sec / 3600),
+          m = Math.floor(sec % 3600 / 60),
+          s = sec % 60;
+    return `${h.toString().padStart(2,'0')}:` +
+           `${m.toString().padStart(2,'0')}:` +
+           `${s.toString().padStart(2,'0')}`;
+  };
+
+  // Start-Knopf
+  document.getElementById('btnStart').onclick = () => {
+    const d = document.getElementById('disponent').value.trim();
+    if (!d) { alert('Disponent angeben'); return; }
+
+    startTime = lastTime = new Date();
+    recorded = [];
+
+    document.querySelectorAll('.step').forEach(b => b.disabled = false);
+    document.getElementById('btnFinish').disabled = false;
+    document.getElementById('btnReport').disabled = true;
+
+    window.timerInterval = setInterval(() => {
+      document.getElementById('timer').textContent =
+        fmt(Math.floor((new Date() - startTime) / 1000));
+    }, 500);
+  };
+
+  // Klick auf Maßnahmen-Buttons
+  document.querySelectorAll('.step').forEach(btn => {
+    btn.onclick = () => {
+      const name = btn.dataset.step;
+      const now  = new Date();
+
+      // Intervall zur letzten Maßnahme
+      const interv = Math.floor((now - lastTime) / 1000);
+      // Kumulativ als Summe aller Intervalle plus aktuelles
+      const prevSum = recorded.reduce((sum, r) => sum + r.interval, 0);
+      const cumul   = prevSum + interv;
+
+      // Reihenfolge-Check nur bei Primary
+      let oot = false;
+      if (stepsPrimary[0] === name) {
+        stepsPrimary.shift();
+      } else if (stepsPrimary.includes(name)) {
+        oot = true;
+      }
+
+      // Daten speichern
+      recorded.push({
+        name:       name,
+        interval:   interv,
+        cumulative: cumul,
+        outOfOrder: oot
+      });
+
+      lastTime = now;
+      btn.classList.replace('btn-outline-danger','btn-outline-success');
+      btn.disabled = true;
+    };
+  });
+
+  // Fertig-Knopf
+  document.getElementById('btnFinish').onclick = () => {
+    clearInterval(window.timerInterval);
+    const end   = new Date();
+    const total = recorded.reduce((sum, r) => sum + r.interval, 0);
+
+    fetch('{{ url_for("submit") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        disponent: document.getElementById('disponent').value.trim(),
+        start:     startTime.toISOString(),
+        end:       end.toISOString(),
+        total:     total,
+        steps:     recorded
+      })
+    })
+    .then(r => r.json())
+    .then(j => {
+      if (j.success) {
+        document.getElementById('btnReport').disabled = false;
+      } else {
+        alert('Speicher-Fehler');
+      }
+    })
+    .catch(e => alert('Fehler: '+e));
+  };
+
+  // Bericht öffnen
+  document.getElementById('btnReport').onclick = () => {
+    window.open('{{ url_for("results") }}', '_blank');
+  };
+</script>
+{% endblock %}
