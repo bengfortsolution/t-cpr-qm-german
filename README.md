@@ -27,6 +27,8 @@ Im Projekt-Root liegt das Skript `install.sh`. So setzt ihr es auf:
 cd /var/www/reatraining
 sudo chmod +x install.sh
 sudo ./install.sh
+````
+
 Das Skript erledigt:
 
 Installation von System-Paketen
@@ -54,7 +56,7 @@ Konfiguration & Neustart von nginx
 
 Domain-Konfiguration
 Öffnet /etc/nginx/sites-available/reatraining und passt server_name an:
-
+```bash
 nginx
 Kopieren
 Bearbeiten
@@ -63,9 +65,10 @@ server {
     server_name deine.domain.tld;
     ...
 }
+```
 Dann:
 
-bash
+
 Kopieren
 Bearbeiten
 sudo nginx -t
@@ -73,7 +76,7 @@ sudo systemctl reload nginx
 Admin-Benutzer anlegen
 Erstellt euren ersten Login-User mit dem Hilfs­script:
 
-bash
+```bash
 Kopieren
 Bearbeiten
 cd /var/www/reatraining
@@ -81,6 +84,7 @@ source venv/bin/activate
 python create_user.py
 deactivate
 Folgt den Eingabe­aufforderungen für Nutzername & Passwort.
+```
 
 Datenbank-Schema
 Tabelle session
