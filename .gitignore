@@ -1,0 +1,14 @@
+# Secrets
+.env
+
+# Python Cache
+__pycache__/
+
+# Virtuelle Umgebung
+venv/
+
+# SQLite-Datenbank
+db.sqlite3
+
+# Socket, Logs, etc.
+reatraining.sock
