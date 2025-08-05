@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Ergebnisse{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"/>
+
+<div class="container mt-4">
+  <h1>Trainingsergebnisse</h1>
+
+  <div class="alert alert-info">
+    <p><strong>Anzahl Trainings:</strong> {{ total_sessions }}</p>
+    <p><strong>Ø Dauer:</strong> {{ avg_total }} s</p>
+    <p><strong>Ø Punkte:</strong> {{ avg_score }} / {{ max_points }}</p>
+    <p><strong>Bestehen ab:</strong> {{ pass_threshold }} P</p>
+  </div>
+
+  <table id="sessions-table" class="display nowrap" style="width:100%">
+    <thead>
+      <tr>
+        <th>#</th><th>Trainer</th><th>Disponent</th><th>Start</th>
+        <th>Dauer (s)</th><th>Punkte</th><th>Bestanden</th><th>Feedback</th><th>Aktionen</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td>{{ s.id }}</td>
+        <td>{{ s.trainer }}</td>
+        <td>{{ s.disponent }}</td>
+        <td>{{ s.start }}</td>
+        <td>{{ s.total }}</td>
+        <td>{{ s.score }} / {{ max_points }}</td>
+        <td>
+          {% if s.passed %}
+            <span class="text-success">✔</span>
+          {% else %}
+            <span class="text-danger">✖</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('feedback', session_id=s.id) }}" class="badge bg-secondary">
+            {{ s.fb_count }} Einträge
+          </a>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('delete_session', session_id=s.id) }}" style="display:inline">
+            <button class="btn btn-sm btn-danger">Löschen</button>
+          </form>
+          <a class="btn btn-sm btn-secondary" target="_blank"
+             href="{{ url_for('pdf_report', session_id=s.id) }}">PDF</a>
+          <a class="btn btn-sm btn-info"
+             href="{{ url_for('feedback', session_id=s.id) }}">Feedback</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="row align-items-end mb-3 mt-4">
+    <div class="col-md-4">
+      <label for="sessionSelect" class="form-label">Training wählen</label>
+      <select id="sessionSelect" class="form-select">
+        <option value="">— bitte wählen —</option>
+        {% for s in sessions %}
+        <option value="{{ s.id }}">#{{ s.id }} – {{ s.disponent }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-8 text-end">
+      <strong>Punkte:</strong>
+      <span id="detailScore">— / {{ max_points }}</span>
+      <span id="detailBadge"></span>
+    </div>
+  </div>
+
+  <div id="detailContainer">
+    <table id="detail-table" class="display nowrap" style="width:100%">
+      <thead>
+        <tr>
+          <th>Schritt</th><th>Ist (s)</th><th>Soll (s)</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <canvas id="detail-chart" style="max-width:100%; height:300px; margin-top:1em;"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const sessions = {{ sessions|tojson }};
+
+$(function(){
+  // Haupttabelle mit deutschem Text
+  $('#sessions-table').DataTable({
+    responsive: true,
+    language: {
+      lengthMenu:   "Zeige _MENU_ Einträge",
+      search:       "Suchen:",
+      info:         "Zeige _START_ bis _END_ von _TOTAL_ Einträgen",
+      paginate: {
+        previous: "Zurück",
+        next:     "Weiter"
+      },
+      zeroRecords:  "Keine Einträge gefunden",
+      infoEmpty:    "Zeige 0 bis 0 von 0 Einträgen",
+      infoFiltered: "(gefiltert von _MAX_ Einträgen)"
+    }
+  });
+
+  // Detailtabelle ohne Paging/Sortierung
+  const detailTable = $('#detail-table').DataTable({
+    responsive:  true,
+    paging:     false,
+    ordering:   false,
+    info:       false,
+    searching:  false,
+    data:       [],
+    columns: [
+      { title: "Schritt" },
+      { title: "Ist (s)" },
+      { title: "Soll (s)" },
+      { title: "Status" }
+    ]
+  });
+
+  // Chart.js initialisieren
+  const ctx = document.getElementById('detail-chart').getContext('2d');
+  const detailChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Ist (s)',  data: [], backgroundColor: [] },
+        { label: 'Soll (s)', data: [], backgroundColor: [] }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  // Dropdown-Wechsel
+  $('#sessionSelect').on('change', function(){
+    const id   = Number(this.value);
+    const sess = sessions.find(s => s.id === id);
+
+    if(!sess){
+      detailTable.clear().draw();
+      detailChart.data.labels = [];
+      detailChart.data.datasets.forEach(ds => {
+        ds.data = [];
+        ds.backgroundColor = [];
+      });
+      detailChart.update();
+      $('#detailScore').text(`— / {{ max_points }}`);
+      $('#detailBadge').html('');
+      return;
+    }
+
+    // Labels und Werte
+    const labels   = sess.steps.map(st => st.name);
+    const istData  = sess.steps.map(st => st.cumulative);
+    const sollData = sess.steps.map(st => st.threshold);
+
+    // Farben: Ist grün oder orange, Soll rot
+    const istColors = sess.steps.map(st =>
+      st.cumulative > st.threshold
+        ? 'rgba(255,165,0,0.8)'   // orange bei Überschreitung
+        : 'rgba(0,128,0,0.7)'     // sonst grün
+    );
+    const sollColors = sess.steps.map(_ => 'rgba(255,0,0,0.7)');
+
+    // Detailtabelle füllen
+    detailTable.clear().rows.add(
+      sess.steps.map(st => [
+        st.name,
+        st.cumulative,
+        st.threshold,
+        st.status
+      ])
+    ).draw();
+
+    // Chart updaten
+    detailChart.data.labels = labels;
+    detailChart.data.datasets[0].data            = istData;
+    detailChart.data.datasets[0].backgroundColor = istColors;
+    detailChart.data.datasets[1].data            = sollData;
+    detailChart.data.datasets[1].backgroundColor = sollColors;
+    detailChart.update();
+
+    // Score & Badge
+    $('#detailScore').text(`${sess.score} / {{ max_points }}`);
+    $('#detailBadge').html(
+      sess.passed
+        ? '<span class="badge bg-success ms-2">Bestanden</span>'
+        : '<span class="badge bg-danger ms-2">Nicht bestanden</span>'
+    );
+  });
+});
+</script>
+{% endblock %}
