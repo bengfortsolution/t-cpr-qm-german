@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h1>Nacherfassung</h1>
+  <p class="text-muted">Übertrage hier die vom Einsatzleitsystem dokumentierten Zeiten.</p>
+  <form method="post">
+    <div class="mb-3 row">
+      <label for="disponent" class="col-sm-2 col-form-label">Disponent</label>
+      <div class="col-sm-10">
+        <input type="text" class="form-control" id="disponent" name="disponent"
+               placeholder="Name Disponent" required>
+      </div>
+    </div>
+    <table class="table table-bordered">
+      <thead class="table-light">
+        <tr>
+          <th class="w-75">Maßnahme</th>
+          <th class="w-25">Kumulative Zeit (s)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for step in QM_TASKS %}
+        <tr>
+          <td>{{ step }}</td>
+          <td>
+            <input type="number" min="0" class="form-control"
+                   name="time_{{ step }}" placeholder="0" required>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary">Auswertung starten</button>
+  </form>
+</div>
+{% endblock %}
