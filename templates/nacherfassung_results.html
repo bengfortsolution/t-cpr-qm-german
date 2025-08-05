@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h1>Nacherfassung – Auswertung</h1>
+
+  <div class="row mb-3">
+    <div class="col-md-4"><strong>Disponent:</strong> {{ disponent }}</div>
+    <div class="col-md-4"><strong>Gesamtdauer:</strong> {{ total }} s</div>
+    <div class="col-md-4">
+      <strong>Punkte:</strong> {{ score }} / {{ max_points }}
+      {% if passed %}
+        <span class="badge bg-success">Bestanden</span>
+      {% else %}
+        <span class="badge bg-danger">Nicht bestanden</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <table class="table table-striped">
+    <thead class="table-light">
+      <tr>
+        <th>Maßnahme</th>
+        <th>Kumulativ (s)</th>
+        <th>Intervall (s)</th>
+        <th>Soll (s)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for st in steps %}
+      <tr>
+        <td>{{ st.name }}</td>
+        <td>{{ st.cumulative if st.cumulative is not none else '-' }}</td>
+        <td>{{ st.interval if st.interval is not none else '-' }}</td>
+        <td>{{ st.threshold if st.threshold is not none else '-' }}</td>
+        <td>{{ st.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <a href="{{ url_for('nacherfassung') }}" class="btn btn-secondary">Neue Nacherfassung</a>
+  <a href="{{ url_for('results') }}" class="btn btn-outline-secondary">Zur Ergebnisübersicht</a>
+</div>
+{% endblock %}
